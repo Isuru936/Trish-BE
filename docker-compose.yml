@@ -1,0 +1,41 @@
+version: '3.4'
+
+services:
+  trish.api:
+    image: ${DOCKER_REGISTRY-}trishapi
+    build:
+      context: .
+      dockerfile: Trish.API/Dockerfile
+    ports:
+    - "8080:8080"
+    - "8081:8081"
+
+  python-service:
+    build: 
+      context: ./python
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    env_file:
+      - .env
+
+  cassandra:
+    image: cassandra:latest
+    ports:
+      - "9042:9042"
+    environment:
+      - CASSANDRA_START_RPC=true
+    volumes:
+      - cassandra_data:/var/lib/cassandra
+    healthcheck:
+      test: ["CMD-SHELL", "[ $$(nodetool statusgossip) = running ]"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  cassandra_data:
+
+
+
+ 
