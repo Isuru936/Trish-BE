@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Trish.Application.Services.Response;
 
-namespace Trish.Application.Abstraction.Services
+namespace Trish.Application.Abstractions.Services
 {
     public interface IDocumentAPIClient
     {

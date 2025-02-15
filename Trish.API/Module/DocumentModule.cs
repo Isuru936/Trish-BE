@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Mvc;
 using Trish.API.Interfaces;
-using Trish.Application.Abstraction.Services;
+using Trish.Application.Abstractions.Services;
 
 namespace Trish.API.Module
 {
@@ -14,7 +14,7 @@ namespace Trish.API.Module
             MapGroup.MapPost("/upload-file",
             async (IFormFile file, [FromServices] IDocumentAPIClient documentApiClient, [FromServices] ICloudflareServices cloudflareServices, [FromServices] IHttpContextAccessor contextAccessor) =>
             {
-                string tenantID = contextAccessor.HttpContext?.Request.Headers["TenantID"].FirstOrDefault();
+                string tenantID = contextAccessor.HttpContext?.Request.Headers["TenantID"]!.FirstOrDefault();
 
                 tenantID = Guid.NewGuid().ToString();
 

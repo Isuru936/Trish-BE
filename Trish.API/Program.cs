@@ -1,5 +1,7 @@
 using Trish.API.Extensions;
 using Trish.Application;
+using Trish.Identitty;
+using Trish.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,7 +11,13 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddHttpClient();
-builder.Services.ConfigureApplicationServices(builder.Configuration);
+
+builder.Services.ConfigureInfrastructureService(cfg);
+builder.Services.ConfigureApplicationServices(cfg);
+builder.Services.ConfigureIdentityService(cfg);
+
+
+builder.Services.AddAuthorization();
 // builder.Services.AddSingleton(sp => new TenantIdProvider().GetTenantId());
 
 builder.Services.AddCors(options =>
@@ -31,8 +39,6 @@ builder.Services.AddAntiforgery(options =>
 });
 
 builder.Services.AddHttpContextAccessor();
-
-// builder.Services.AddAntiforgery(options => options.SuppressXFrameOptionsHeader = true);
 
 var app = builder.Build();
 

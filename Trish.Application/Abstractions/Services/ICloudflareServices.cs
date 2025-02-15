@@ -1,6 +1,6 @@
 ﻿using Trish.Application.Services;
 
-namespace Trish.Application.Abstraction.Services
+namespace Trish.Application.Abstractions.Services
 {
     public interface ICloudflareServices
     {

@@ -1,6 +1,6 @@
 ﻿using Amazon.Runtime;
 using Amazon.S3;
-using Trish.Application.Abstraction.Services;
+using Trish.Application.Abstractions.Services;
 using PutObjectRequest = Amazon.S3.Model.PutObjectRequest;
 
 namespace Trish.Application.Services

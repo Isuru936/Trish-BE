@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using System.Text;
 using System.Text.Json;
-using Trish.Application.Abstraction.Services;
+using Trish.Application.Abstractions.Services;
 using Trish.Application.Services.Response;
 
 namespace Trish.Application.Services
