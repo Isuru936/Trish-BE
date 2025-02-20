@@ -1,5 +1,6 @@
 using Trish.API.Extensions;
 using Trish.Application;
+using Trish.Application.Services;
 using Trish.Identitty;
 using Trish.Infrastructure;
 
@@ -39,6 +40,7 @@ builder.Services.AddAntiforgery(options =>
 });
 
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddHttpClient<OpenAIService>(); // If it depends on HttpClient
 
 var app = builder.Build();
 

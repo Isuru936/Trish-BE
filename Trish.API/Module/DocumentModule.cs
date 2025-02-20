@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Trish.API.Interfaces;
 using Trish.Application.Abstractions.Services;
+using Trish.Application.Services;
 
 namespace Trish.API.Module
 {
@@ -29,9 +30,13 @@ namespace Trish.API.Module
             }).DisableAntiforgery();
 
             MapGroup.MapPost("/query",
-                async (RequestBody request, [FromServices] IDocumentAPIClient documentApiClient, [FromServicesAttribute] ICloudflareServices cloudflareServices, [FromServicesAttribute] IHttpContextAccessor contextAccessor) =>
+                async (RequestBody request, [FromServices] IDocumentAPIClient documentApiClient, OpenAIService openAi, [FromServicesAttribute] ICloudflareServices cloudflareServices, [FromServicesAttribute] IHttpContextAccessor contextAccessor) =>
                 {
-                    var response = await documentApiClient.QueryFromPdf(request.question, request.tenant_id);
+                    var optimizedQ = await openAi.OptimizeQueryAsync(request.question);
+                    Console.WriteLine("optiized", optimizedQ);
+                    var response = await documentApiClient.QueryFromPdf(optimizedQ, request.tenant_id);
+                    var optimizedResponse = await openAi.RefineResponseAsync(response?.Answer);
+                    response.Answer = optimizedResponse;
                     return response;
                 });
 
