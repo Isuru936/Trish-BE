@@ -2,7 +2,6 @@
 using System.Text;
 using System.Text.Json;
 using Trish.Application.Abstractions.Services;
-using Trish.Application.Services.Response;
 
 namespace Trish.Application.Services
 {

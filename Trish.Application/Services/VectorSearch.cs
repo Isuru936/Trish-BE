@@ -19,7 +19,8 @@ public class CassandraVectorSearch
     {
         // Initialize Cassandra connection
         var cluster = Cluster.Builder()
-            .AddContactPoints(contactPoints.Split(','))
+            .AddContactPoints("localhost")
+            .WithPort(9042)
             .WithDefaultKeyspace("shared_keyspace")
             .Build();
 
@@ -176,7 +177,7 @@ public class CassandraVectorSearch
             .GetProperty("choices")[0]
             .GetProperty("message")
             .GetProperty("content")
-            .GetString();
+            .GetString()!;
     }
     /*
     public async Task<QueryResponse> QueryFromPdf(string question, string tenantId)

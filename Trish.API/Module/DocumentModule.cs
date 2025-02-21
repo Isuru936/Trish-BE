@@ -17,7 +17,9 @@ namespace Trish.API.Module
             {
                 string tenantID = contextAccessor.HttpContext?.Request.Headers["TenantID"]!.FirstOrDefault();
 
+
                 tenantID = Guid.NewGuid().ToString();
+                tenantID = "55241378-c72b-4fe9-ae9b-b8535ef62fd8";
 
                 if (string.IsNullOrEmpty(tenantID))
                 {
@@ -25,7 +27,7 @@ namespace Trish.API.Module
                 }
 
                 await documentApiClient.ProcessPdfFile(file, tenantID);
-                var response = cloudflareServices.UploadFileAsync(file.OpenReadStream(), file.FileName, file.ContentType);
+                var response = cloudflareServices.UploadFileAsync(file.OpenReadStream(), tenantID, file.FileName, file.ContentType);
                 return Results.Ok(new { message = response.Result });
             }).DisableAntiforgery();
 
@@ -38,6 +40,21 @@ namespace Trish.API.Module
                     var optimizedResponse = await openAi.RefineResponseAsync(response?.Answer);
                     response.Answer = optimizedResponse;
                     return response;
+                });
+
+            MapGroup.MapGet("/fetchDocs",
+                async ([FromServicesAttribute] ICloudflareServices cloudfare, [FromServicesAttribute] IHttpContextAccessor contextAccessor) =>
+                {
+                    string tenantID = contextAccessor.HttpContext?.Request.Headers["TenantID"]!.FirstOrDefault();
+
+                    tenantID = "55241378-c72b-4fe9-ae9b-b8535ef62fd8";
+
+                    if (string.IsNullOrEmpty(tenantID))
+                    {
+                        return Results.BadRequest(new { message = "TenantID is required" });
+                    }
+                    var response = await cloudfare.GetDocumentLinksAsync(tenantID);
+                    return Results.Ok(response);
                 });
 
             MapGroup.MapGet("/test", () =>

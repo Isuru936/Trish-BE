@@ -32,7 +32,7 @@ namespace Trish.Application.Services
             var responseString = await response.Content.ReadAsStringAsync();
 
             var result = JsonSerializer.Deserialize<JsonElement>(responseString);
-            return result.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString();
+            return result.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString()!;
         }
 
         public async Task<string> RefineResponseAsync(string dbResponse)

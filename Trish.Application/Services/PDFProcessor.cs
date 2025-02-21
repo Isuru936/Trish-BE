@@ -17,7 +17,8 @@
         public PdfProcessor(string contactPoints, string openAiKey)
         {
             var cluster = Cluster.Builder()
-                .AddContactPoints(contactPoints.Split(','))
+                .AddContactPoints("localhost")
+                .WithPort(9042)
                 .WithDefaultKeyspace("shared_keyspace")
                 .Build();
 
