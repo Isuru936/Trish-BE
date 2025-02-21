@@ -13,7 +13,7 @@ namespace Trish.API.Module
             RouteGroupBuilder MapGroup = app.MapGroup("api").WithTags("Documents");
 
             MapGroup.MapPost("/upload-file",
-            async (IFormFile file, [FromServices] IDocumentAPIClient documentApiClient, [FromServices] ICloudflareServices cloudflareServices, [FromServices] IHttpContextAccessor contextAccessor) =>
+            async (IFormFile file, PdfProcessor documentApiClient, [FromServices] ICloudflareServices cloudflareServices, [FromServices] IHttpContextAccessor contextAccessor) =>
             {
                 string tenantID = contextAccessor.HttpContext?.Request.Headers["TenantID"]!.FirstOrDefault();
 
@@ -24,13 +24,13 @@ namespace Trish.API.Module
                     return Results.BadRequest(new { message = "TenantID is required" });
                 }
 
-                await documentApiClient.UploadPdfAsync(file, tenantID);
+                await documentApiClient.ProcessPdfFile(file, tenantID);
                 var response = cloudflareServices.UploadFileAsync(file.OpenReadStream(), file.FileName, file.ContentType);
                 return Results.Ok(new { message = response.Result });
             }).DisableAntiforgery();
 
             MapGroup.MapPost("/query",
-                async (RequestBody request, [FromServices] IDocumentAPIClient documentApiClient, OpenAIService openAi, [FromServicesAttribute] ICloudflareServices cloudflareServices, [FromServicesAttribute] IHttpContextAccessor contextAccessor) =>
+                async (RequestBody request, CassandraVectorSearch documentApiClient, OpenAIService openAi, [FromServicesAttribute] ICloudflareServices cloudflareServices, [FromServicesAttribute] IHttpContextAccessor contextAccessor) =>
                 {
                     var optimizedQ = await openAi.OptimizeQueryAsync(request.question);
                     Console.WriteLine("optiized", optimizedQ);
