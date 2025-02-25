@@ -41,8 +41,8 @@
 
         public void AddNode(float[] vector, string content)
         {
-            var node = new HNSWNode(vector, content, allNodes.Count);
             int nodeLevel = GenerateRandomLevel();
+            var node = new HNSWNode(vector, content, allNodes.Count, nodeLevel);
 
             if (entryPoint == null)
             {
@@ -54,7 +54,7 @@
             var currentNode = entryPoint;
 
             // Search for neighbors at each level
-            for (int level = Math.Min(nodeLevel, GetNodeLevel(entryPoint)); level >= 0; level--)
+            for (int level = Math.Min(nodeLevel, entryPoint.Level); level >= 0; level--)
             {
                 var neighbors = SearchLayer(currentNode, node.Vector, level, 1);
                 if (neighbors.Any())
@@ -71,7 +71,7 @@
             }
 
             // Update entry point if necessary
-            if (nodeLevel > GetNodeLevel(entryPoint))
+            if (nodeLevel > entryPoint.Level)
             {
                 entryPoint = node;
             }
@@ -81,18 +81,9 @@
 
         private void ConnectNodes(HNSWNode node, List<HNSWNode> neighbors, int level)
         {
-            if (!node.Connections.ContainsKey(level))
-            {
-                node.Connections[level] = new HashSet<HNSWNode>();
-            }
-
             foreach (var neighbor in neighbors)
             {
-                if (!neighbor.Connections.ContainsKey(level))
-                {
-                    neighbor.Connections[level] = new HashSet<HNSWNode>();
-                }
-
+                // Both node and neighbor should already have their connection sets initialized
                 node.Connections[level].Add(neighbor);
                 neighbor.Connections[level].Add(node);
             }
@@ -146,11 +137,6 @@
             return (int)(-Math.Log(r) * (MaxLevel - 1));
         }
 
-        private int GetNodeLevel(HNSWNode node)
-        {
-            return node.Connections.Keys.Max();
-        }
-
         public List<(string content, double similarity)> Search(float[] queryVector, int k)
         {
             if (entryPoint == null) return new List<(string, double)>();
@@ -158,7 +144,7 @@
             var currentNode = entryPoint;
 
             // Search through levels
-            for (int level = GetNodeLevel(entryPoint); level > 0; level--)
+            for (int level = entryPoint.Level; level > 0; level--)
             {
                 var neighbors = SearchLayer(currentNode, queryVector, level, 1);
                 if (neighbors.Any())
@@ -177,5 +163,4 @@
             return results;
         }
     }
-
 }

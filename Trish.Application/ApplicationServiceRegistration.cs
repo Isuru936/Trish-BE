@@ -35,8 +35,8 @@ namespace Trish.Application
                 return cluster.Connect("shared_keyspace"); // Replace with your actual keyspace
             });
 
-            services.AddSingleton<CassandraVectorSearch2>(sp =>
-                new CassandraVectorSearch2(
+            services.AddSingleton<CassandraVectorSearch>(sp =>
+                new CassandraVectorSearch(
                    "cassandra",
                    "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"
                 )

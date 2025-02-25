@@ -18,8 +18,8 @@ namespace Trish.API.Module
                 string tenantID = contextAccessor.HttpContext?.Request.Headers["TenantID"]!.FirstOrDefault();
 
 
-                tenantID = Guid.NewGuid().ToString();
-                tenantID = "55241378-c72b-4fe9-ae9b-b8535ef62fd8";
+                // tenantID = Guid.NewGuid().ToString();
+                // tenantID = "55241378-c72b-4fe9-ae9b-b8535ef62fd8";
 
                 if (string.IsNullOrEmpty(tenantID))
                 {
@@ -47,7 +47,7 @@ namespace Trish.API.Module
                 {
                     string tenantID = contextAccessor.HttpContext?.Request.Headers["TenantID"]!.FirstOrDefault();
 
-                    tenantID = "55241378-c72b-4fe9-ae9b-b8535ef62fd8";
+                    // tenantID = "55241378-c72b-4fe9-ae9b-b8535ef62fd8";
 
                     if (string.IsNullOrEmpty(tenantID))
                     {

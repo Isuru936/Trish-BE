@@ -19,6 +19,14 @@ namespace Trish.API.Module
                     return Results.Ok(await _mediator.Send(command));
                 }
             );
+
+            /* MapGroup.MapGet(
+                "/getAll",
+                async (GetAllOrganizationsQuery query, [FromServicesAttribute] IMediator _mediator) =>
+                {
+                    return Results.Ok(await _mediator.Send(query));
+                }); */
+
         }
     }
 }

@@ -9,6 +9,7 @@ namespace Trish.Infrastructure
             : base(options) { }
 
         public DbSet<Organization> Organizations { get; set; }
+        public DbSet<UserOrganization> userOrganizations { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

@@ -1,6 +1,8 @@
 ﻿using Cassandra;
+using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
+using Trish.Application.Services.HNSW;
 
 public class CassandraVectorSearch
 {
@@ -8,16 +10,10 @@ public class CassandraVectorSearch
     private readonly HttpClient _openAiClient;
     private readonly string _openAiKey;
     private PreparedStatement _searchStatement;
-
-    public class SearchResult
-    {
-        public string Content { get; set; }
-        public double Similarity { get; set; }
-    }
+    private readonly ConcurrentDictionary<string, HNSWGraph> _tenantIndices;
 
     public CassandraVectorSearch(string contactPoints, string openAiKey)
     {
-        // Initialize Cassandra connection
         var cluster = Cluster.Builder()
             .AddContactPoints("localhost")
             .WithPort(9042)
@@ -25,22 +21,33 @@ public class CassandraVectorSearch
             .Build();
 
         _session = cluster.Connect();
-
-        // Initialize OpenAI client
         _openAiClient = new HttpClient();
         _openAiClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {openAiKey}");
         _openAiKey = openAiKey;
-
-        // PrepareStatements();
+        _tenantIndices = new ConcurrentDictionary<string, HNSWGraph>();
     }
-    private void PrepareStatements(string safeTenantId)
+
+    private async Task InitializeHNSWIndex(string safeTenantId)
     {
+        if (_tenantIndices.ContainsKey(safeTenantId)) return;
+
+        var hnswGraph = new HNSWGraph();
         string tableName = $"qa_data_{safeTenantId}";
 
-        // Instead of using similarity_cosine, we'll calculate cosine similarity manually
-        _searchStatement = _session.Prepare($@"
-        SELECT body_blob, vector 
-        FROM shared_keyspace.{tableName}");
+        var statement = _session.Prepare($@"
+            SELECT body_blob, vector 
+            FROM shared_keyspace.{tableName}");
+
+        var resultSet = await _session.ExecuteAsync(statement.Bind());
+
+        foreach (var row in resultSet)
+        {
+            var vector = row.GetValue<List<float>>("vector").ToArray();
+            var content = row.GetValue<string>("body_blob");
+            hnswGraph.AddNode(vector, content);
+        }
+
+        _tenantIndices.TryAdd(safeTenantId, hnswGraph);
     }
 
     public async Task<QueryResponse> QueryFromPdf(string question, string tenantId)
@@ -48,29 +55,19 @@ public class CassandraVectorSearch
         try
         {
             var safeTenantId = tenantId.Replace("-", "_");
-            PrepareStatements(safeTenantId);
+            await InitializeHNSWIndex(safeTenantId);
 
-            // Get question embedding
             var queryVector = await GetOpenAIEmbedding(question);
+            var hnswIndex = _tenantIndices[safeTenantId];
 
-            // Execute the basic query to get all vectors
-            var boundStatement = _searchStatement.Bind()
-                .SetConsistencyLevel(ConsistencyLevel.LocalOne);
-
-            var resultSet = await _session.ExecuteAsync(boundStatement);
-
-            // Calculate cosine similarity in memory
-            var searchResults = resultSet
-                .Select(row => new SearchResult
+            var searchResults = hnswIndex.Search(queryVector, 3)
+                .Select(result => new SearchResult
                 {
-                    Content = row.GetValue<string>("body_blob"),
-                    Similarity = CalculateCosineSimilarity(queryVector, row.GetValue<List<float>>("vector").ToArray())
+                    Content = result.content,
+                    Similarity = result.similarity
                 })
-                .OrderByDescending(r => r.Similarity)
-                .Take(3)
                 .ToList();
 
-            // Get completion from OpenAI
             var answer = await GetOpenAICompletion(
                 question,
                 searchResults.Select(r => r.Content).ToList()
@@ -89,21 +86,6 @@ public class CassandraVectorSearch
         }
     }
 
-    private double CalculateCosineSimilarity(float[] vectorA, float[] vectorB)
-    {
-        double dotProduct = 0.0;
-        double normA = 0.0;
-        double normB = 0.0;
-
-        for (int i = 0; i < vectorA.Length; i++)
-        {
-            dotProduct += vectorA[i] * vectorB[i];
-            normA += vectorA[i] * vectorA[i];
-            normB += vectorB[i] * vectorB[i];
-        }
-
-        return dotProduct / (Math.Sqrt(normA) * Math.Sqrt(normB));
-    }
     private async Task<float[]> GetOpenAIEmbedding(string text)
     {
         var requestBody = new
@@ -173,60 +155,23 @@ public class CassandraVectorSearch
 
         var responseString = await response.Content.ReadAsStringAsync();
         var responseJson = JsonDocument.Parse(responseString);
+
+        // if (responseJson.RootElement.GetProperty("message").GetString().Equals("i don't know") {
+        //    responseJson.RootElement.GetProperty("message") = "I don't know, but ill inform an agent to address this issue"
+        // }
+
         return responseJson.RootElement
             .GetProperty("choices")[0]
             .GetProperty("message")
             .GetProperty("content")
             .GetString()!;
     }
-    /*
-    public async Task<QueryResponse> QueryFromPdf(string question, string tenantId)
-    {
-        try
-        {
-            // Sanitize tenant ID for table name
-            var safeTenantId = tenantId.Replace("-", "_");
-            PrepareStatements(safeTenantId);
-            // Get question embedding
-            var questionVector = await GetOpenAIEmbedding(question);
+}
 
-            // Perform vector search
-            var boundStatement = _searchStatement.Bind(questionVector)
-                .SetConsistencyLevel(ConsistencyLevel.LocalOne);
-
-            // Format the query with the safe tenant ID
-            // boundStatement.RoutingKey = ByteBuffer.Allocate(16); // Set appropriate routing key if needed
-            // boundStatement.SetKeyspace("shared_keyspace");
-
-            var resultSet = await _session.ExecuteAsync(boundStatement);
-
-            var searchResults = resultSet
-                .Select(row => new SearchResult
-                {
-                    Content = row.GetValue<string>("content"),
-                    Similarity = row.GetValue<double>("similarity")
-                })
-                .ToList();
-
-            // Get completion from OpenAI
-            var answer = await GetOpenAICompletion(
-                question,
-                searchResults.Select(r => r.Content).ToList()
-            );
-
-            return new QueryResponse
-            {
-                Answer = answer,
-                SourceDocuments = searchResults.Select(r => r.Content).ToList()
-            };
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Query failed: {ex.Message}");
-            throw;
-        }
-    }
-    */
+internal class SearchResult
+{
+    public string Content { get; set; }
+    public double Similarity { get; set; }
 }
 
 public class QueryResponse

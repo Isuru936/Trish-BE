@@ -3,7 +3,6 @@ using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
 using Trish.Application.Services.HNSW;
-using static CassandraVectorSearch;
 
 
 /* public class HNSWNode
@@ -200,6 +199,7 @@ using static CassandraVectorSearch;
     }
 }
 */
+
 public class CassandraVectorSearch2
 {
     private readonly ISession _session;
