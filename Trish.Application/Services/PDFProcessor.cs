@@ -14,12 +14,12 @@
         private readonly HttpClient _openAiClient;
         private readonly string _openAiKey;
 
-        public PdfProcessor(string contactPoints, string openAiKey)
+        public PdfProcessor(string contactPoints, string openAiKey, string keySpace)
         {
             var cluster = Cluster.Builder()
-                .AddContactPoints("localhost")
+                .AddContactPoints(contactPoints)
                 .WithPort(9042)
-                .WithDefaultKeyspace("shared_keyspace")
+                .WithDefaultKeyspace(keySpace)
                 .Build();
 
             _session = cluster.Connect();

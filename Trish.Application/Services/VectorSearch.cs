@@ -1,4 +1,5 @@
 ﻿using Cassandra;
+using Microsoft.Extensions.Configuration;
 using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
@@ -12,18 +13,25 @@ public class CassandraVectorSearch
     private PreparedStatement _searchStatement;
     private readonly ConcurrentDictionary<string, HNSWGraph> _tenantIndices;
 
-    public CassandraVectorSearch(string contactPoints, string openAiKey)
+    public CassandraVectorSearch(IConfiguration configuration)
     {
+
+        var contactPoints = configuration["CassandraSettings:ContactPoints"];
+        var port = int.Parse(configuration["CassandraSettings:Port"]!);
+        var keyspace = configuration["CassandraSettings:Keyspace"];
+        _openAiKey = configuration["OpenAI:ApiKey"]!;
+
+        Console.WriteLine($"Connecting to Cassandra at {contactPoints}:{port}...{keyspace} -- {_openAiKey}");
+
         var cluster = Cluster.Builder()
-            .AddContactPoints("localhost")
+            .AddContactPoints(contactPoints)
             .WithPort(9042)
-            .WithDefaultKeyspace("shared_keyspace")
+            .WithDefaultKeyspace(keyspace)
             .Build();
 
         _session = cluster.Connect();
         _openAiClient = new HttpClient();
-        _openAiClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {openAiKey}");
-        _openAiKey = openAiKey;
+        _openAiClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_openAiKey}");
         _tenantIndices = new ConcurrentDictionary<string, HNSWGraph>();
     }
 
@@ -36,7 +44,7 @@ public class CassandraVectorSearch
 
         var statement = _session.Prepare($@"
             SELECT body_blob, vector 
-            FROM shared_keyspace.{tableName}");
+            FROM shared_keyspace.{tableName}"); // Change with your keyspace
 
         var resultSet = await _session.ExecuteAsync(statement.Bind());
 

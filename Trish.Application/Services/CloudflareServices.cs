@@ -10,15 +10,17 @@ namespace Trish.Application.Services
     {
         private readonly IAmazonS3 _s3Client;
         private readonly string _bucketName;
+        private readonly string _publicUrl;
 
-        public CloudflareServices(string accountId, string accessKeyId, string secretAccessKey, string bucketName)
+
+        public CloudflareServices(string accessKeyId, string secretAccessKey, string serviceUrl, string bucketName, string publicUrl)
         {
 
             var config = new AmazonS3Config
             {
-                ServiceURL = "https://1e2a7b647a5b70e7e3971a9db1dace1c.r2.cloudflarestorage.com",
+                ServiceURL = serviceUrl,
                 ForcePathStyle = true,
-                SignatureVersion = "4", // Explicitly set to use SigV4
+                SignatureVersion = "4",
                 RequestChecksumCalculation = RequestChecksumCalculation.WHEN_REQUIRED,
                 ResponseChecksumValidation = ResponseChecksumValidation.WHEN_REQUIRED
             };
@@ -28,6 +30,7 @@ namespace Trish.Application.Services
                 config
             );
             _bucketName = bucketName;
+            _publicUrl = publicUrl;
         }
 
         public async Task<R2UploadResult> UploadFileAsync(Stream fileStream, string tenantId, string fileName, string contentType)
@@ -121,7 +124,7 @@ namespace Trish.Application.Services
 
                     var presignedUrl = _s3Client.GetPreSignedURL(urlRequest);
 
-                    var url = $"https://pub-ab70ac4697984da092b57e2ecb34152e.r2.dev/{obj.Key}";
+                    var url = $"{_publicUrl}{obj.Key}";
 
                     documents.Add(new R2DocumentLink
                     {

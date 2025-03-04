@@ -16,37 +16,36 @@ namespace Trish.Application
     {
         public static IServiceCollection ConfigureApplicationServices(this IServiceCollection services, IConfiguration configuration)
         {
+            Console.WriteLine("Cloudflare services registered", configuration["Cloudflare:ServiceUrl"]);
             services.AddScoped<ICloudflareServices>(sp =>
                 new CloudflareServices(
-                    configuration["Cloudflare:AccountId"]!,
                     configuration["Cloudflare:AccessKeyId"]!,
                     configuration["Cloudflare:SecretAccessKey"]!,
-                    configuration["Cloudflare:BucketName"]!
+                    configuration["Cloudflare:ServiceUrl"]!,
+                    configuration["Cloudflare:BucketName"]!,
+                    configuration["Cloudflare:PublicUrl"]!
                 )
             );
 
             services.AddSingleton<ISession>(sp =>
             {
                 var cluster = Cluster.Builder()
-                    .AddContactPoint("localhost") // Use "cassandra" if running in Docker Compose
-                    .WithPort(9042)
+                    .AddContactPoint(configuration["CassandraSettings:ContactPoints"]) // Use "cassandra" if running in Docker Compose
+                    .WithPort(int.Parse(configuration["CassandraSettings:Port"]!))
                     .Build();
 
-                return cluster.Connect("shared_keyspace"); // Replace with your actual keyspace
+                return cluster.Connect(configuration["CassandraSettings:KeySpace"]); // Replace with your actual keyspace
             });
 
             services.AddSingleton<CassandraVectorSearch>(sp =>
-                new CassandraVectorSearch(
-                   "cassandra",
-                   "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"
-                )
+                new CassandraVectorSearch(configuration)
             );
 
             services.AddSingleton<PdfProcessor>(sp =>
                 new PdfProcessor(
-                    "cassandra",
-                   "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"
-                )
+                    configuration["CassandraSettings:ContactPoints"]!, // Use "cassandra" if running in Docker Compose
+                    configuration["OpenAI:ApiKey"]!,
+                    configuration["CassandraSettings:KeySpace"]!)
             );
 
             services.AddAutoMapper(Assembly.GetExecutingAssembly());
@@ -58,7 +57,7 @@ namespace Trish.Application
 
             services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 
-            services.AddScoped<IDocumentAPIClient, DocumentAPIClient>();
+            // services.AddScoped<IDocumentAPIClient, DocumentAPIClient>();
             services.AddScoped<IValidator<SignUpCommand>, SignUpCommandValidator>();
 
             return services;
