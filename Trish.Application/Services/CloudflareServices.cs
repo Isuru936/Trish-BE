@@ -48,9 +48,9 @@ namespace Trish.Application.Services
                 };
 
 
-                var response = await _s3Client.PutObjectAsync(putRequest);
+                await _s3Client.PutObjectAsync(putRequest);
 
-                var url = $"https://{_bucketName}.{_s3Client.Config.ServiceURL}/{fileName}";
+                var url = $"{_publicUrl}{Path.GetFileNameWithoutExtension(fileName)}-*-{tenantId}.pdf";
 
                 return new R2UploadResult
                 {

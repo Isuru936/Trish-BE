@@ -12,33 +12,33 @@ namespace Trish.API.Module
         {
             RouteGroupBuilder MapGroup = app.MapGroup("api").WithTags("Documents");
 
-            MapGroup.MapPost("/upload-file",
-            async (IFormFile file, PdfProcessor documentApiClient, [FromServices] ICloudflareServices cloudflareServices, [FromServices] IHttpContextAccessor contextAccessor) =>
+            MapGroup.MapPost("/upload-file", async (
+                [FromForm] IFormFile file,
+                [FromServices] DocumentProcessor documentApiClient,
+                [FromServices] ICloudflareServices cloudflareServices,
+                [FromServices] IHttpContextAccessor contextAccessor) =>
             {
                 string tenantID = contextAccessor.HttpContext?.Request.Headers["TenantID"]!.FirstOrDefault();
-
-
-                // tenantID = Guid.NewGuid().ToString();
-                // tenantID = "55241378-c72b-4fe9-ae9b-b8535ef62fd8";
 
                 if (string.IsNullOrEmpty(tenantID))
                 {
                     return Results.BadRequest(new { message = "TenantID is required" });
                 }
 
-                await documentApiClient.ProcessPdfFile(file, tenantID);
-                var response = cloudflareServices.UploadFileAsync(file.OpenReadStream(), tenantID, file.FileName, file.ContentType);
-                return Results.Ok(new { message = response.Result });
+                var response = await cloudflareServices.UploadFileAsync(file.OpenReadStream(), tenantID, file.FileName, file.ContentType);
+                await documentApiClient.ProcessDocumentsAsync(response.Url, tenantID);
+
+                return Results.Ok();
             }).DisableAntiforgery();
 
             MapGroup.MapPost("/query",
-                async (RequestBody request, CassandraVectorSearch documentApiClient, OpenAIService openAi, [FromServicesAttribute] ICloudflareServices cloudflareServices, [FromServicesAttribute] IHttpContextAccessor contextAccessor) =>
+                async (RequestBody request, DocumentProcessor documentApiClient, OpenAIService openAi, [FromServicesAttribute] ICloudflareServices cloudflareServices, [FromServicesAttribute] IHttpContextAccessor contextAccessor) =>
                 {
-                    var optimizedQ = await openAi.OptimizeQueryAsync(request.question);
-                    Console.WriteLine("optiized", optimizedQ);
-                    var response = await documentApiClient.QueryFromPdf(optimizedQ, request.tenant_id);
-                    var optimizedResponse = await openAi.RefineResponseAsync(response?.Answer);
-                    response.Answer = optimizedResponse;
+                    // var optimizedQ = await openAi.OptimizeQueryAsync(request.question);
+                    // Console.WriteLine("optiized", request.question);
+                    var response = await documentApiClient.QueryDocumentsAsync(request.question, request.tenant_id);
+                    // var optimizedResponse = await openAi.RefineResponseAsync(response[0]);
+                    // response.Answer = optimizedResponse;
                     return response;
                 });
 
