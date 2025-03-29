@@ -23,7 +23,7 @@ namespace Trish.Application.Services
                 messages = new[]
                 {
                 new { role = "system", content = "You are an assistant that refines user queries for a RAG database." },
-                new { role = "user", content = $"Optimize this query for efficient retrieval: {userQuery}" }
+                new { role = "user", content = $"Optimize this query for efficient retrieval. {userQuery}" }
             }
             };
 
@@ -35,16 +35,16 @@ namespace Trish.Application.Services
             return result.GetProperty("choices")[0].GetProperty("message").GetProperty("content").GetString()!;
         }
 
-        public async Task<string> RefineResponseAsync(string dbResponse)
+        public async Task<string> RefineResponseAsync(string question, List<string> dbResponse)
         {
             var requestBody = new
             {
                 model = "gpt-4",
                 messages = new[]
                 {
-            new { role = "system", content = "You are an assistant that makes database responses sound natural." },
-            new { role = "user", content = $"Make this response more human-friendly: {dbResponse}" }
-        }
+            new { role = "system", content = "You are an AI assistant that provides clear, concise, and human-like answers. Make the response direct, natural, and easy to understand." },
+            new { role = "user", content = $"Given the question: \"{question}\", select the most relevant response from the following options: {string.Join(", ", dbResponse)}. Rewrite it in a natural and conversational manner." }
+                }
             };
 
             var content = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");

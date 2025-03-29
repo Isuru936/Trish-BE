@@ -31,11 +31,16 @@ namespace Trish.Application
 
                 var kernelBuilder = Kernel.CreateBuilder();
                 kernelBuilder.AddOpenAIChatCompletion("gpt-3.5-turbo-0125", apiKey);
+                kernelBuilder.AddQdrantVectorStore("http://localhost:6333");
+#pragma warning disable SKEXP0010
+                kernelBuilder.AddOpenAITextEmbeddingGeneration("text-embedding-3-small", apiKey, dimensions: 384);
                 kernelBuilder.Services.AddHttpClient();
                 kernelBuilder.Services.AddLogging();
+                kernelBuilder.Services.AddQdrantVectorStore("localhost");
 
                 return kernelBuilder.Build();
             });
+
 
             // Semantic Memory Service Registration
             services.AddScoped<ISemanticMemoryService, SemanticMemoryService>();

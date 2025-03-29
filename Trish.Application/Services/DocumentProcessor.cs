@@ -18,27 +18,52 @@ namespace Trish.Application.Services
 
         public async Task ProcessDocumentsAsync(string fileUrlPath, string tenentId)
         {
-            // string webUrl = "https://pub-ab70ac4697984da092b57e2ecb34152e.r2.dev/Isuru%20Bandara-*-e0c90358-2c3c-4efb-9b20-7a9e6f7b69a5.pdf";
 
             // Check if collection exists, if not populate
-            if (!await _memoryService.CheckCollectionExistsAsync(tenentId))
-            {
-                await _memoryService.PopulateCollectionFromWebAsync(fileUrlPath, tenentId);
-            }
+            //if (await _memoryService.CheckCollectionExistsAsync(tenentId))
+            // {
+            //    await _memoryService.CreateCollectionAsync(tenentId);
+            //}
+            await _memoryService.PopulatePdfCollectionAsync(fileUrlPath, tenentId);
 
             // Process PDF
-            string pdfCollectionName = "pdf-documents";
 
-            if (!await _memoryService.CheckCollectionExistsAsync(pdfCollectionName))
-            {
-                await _memoryService.PopulatePdfCollectionAsync(fileUrlPath, tenentId);
-            }
         }
 
         public async Task<List<string>> QueryDocumentsAsync(string question, string tenentId)
         {
-            string collectionName = tenentId;
-            return await _memoryService.FetchDocumentContextAsync(collectionName, question);
+            try
+            {
+                string collectionName = tenentId;
+
+                // First, diagnose the collection to understand its state
+                var collectionCheck = await _memoryService.CheckCollectionExistsAsync(collectionName);
+
+                // Log the incoming query details
+                _logger.LogInformation($"Querying collection: {collectionName}");
+                _logger.LogInformation($"Question: {question}");
+
+                // Fetch document context
+                var results = await _memoryService.FetchDocumentContextAsync(collectionName, question);
+
+                // Log the results
+                _logger.LogInformation($"Number of results found: {results.Count}");
+                foreach (var result in results)
+                {
+                    _logger.LogInformation($"Retrieved context: {result}");
+                }
+
+                return results;
+            }
+            catch (Exception ex)
+            {
+                // Log the full exception details
+                _logger.LogError($"Error in QueryDocumentsAsync: {ex.Message}");
+                _logger.LogError($"Stack Trace: {ex.StackTrace}");
+
+                // Optionally, you can rethrow or return an empty list
+                return new List<string>();
+            }
         }
     }
 }

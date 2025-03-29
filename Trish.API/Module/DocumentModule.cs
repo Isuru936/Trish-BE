@@ -34,12 +34,11 @@ namespace Trish.API.Module
             MapGroup.MapPost("/query",
                 async (RequestBody request, DocumentProcessor documentApiClient, OpenAIService openAi, [FromServicesAttribute] ICloudflareServices cloudflareServices, [FromServicesAttribute] IHttpContextAccessor contextAccessor) =>
                 {
-                    // var optimizedQ = await openAi.OptimizeQueryAsync(request.question);
-                    // Console.WriteLine("optiized", request.question);
+
                     var response = await documentApiClient.QueryDocumentsAsync(request.question, request.tenant_id);
-                    // var optimizedResponse = await openAi.RefineResponseAsync(response[0]);
+                    var optimizedResponse = await openAi.RefineResponseAsync(request.question, response);
                     // response.Answer = optimizedResponse;
-                    return response;
+                    return optimizedResponse;
                 });
 
             MapGroup.MapGet("/fetchDocs",

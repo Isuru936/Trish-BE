@@ -17,9 +17,12 @@
     <PackageReference Include="Microsoft.Extensions.Logging" Version="8.0.1" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.1" />
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.1" />
+    <PackageReference Include="Microsoft.Extensions.VectorData.Abstractions" Version="9.0.0-preview.1.25161.1" />
     <PackageReference Include="Microsoft.SemanticKernel" Version="1.40.1" />
     <PackageReference Include="Microsoft.SemanticKernel.Connectors.OpenAI" Version="1.40.1" />
     <PackageReference Include="Microsoft.SemanticKernel.Connectors.Qdrant" Version="1.40.1-preview" />
+    <PackageReference Include="Microsoft.SemanticKernel.Plugins.Memory" Version="1.44.0-alpha" />
+    <PackageReference Include="Qdrant.Grpc" Version="1.0.0-alpha.6" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.1.2" />
   </ItemGroup>
   <ItemGroup>
