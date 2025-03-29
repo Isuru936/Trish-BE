@@ -17,6 +17,15 @@ namespace Trish.Application.Services
             _client.BaseAddress = new Uri("http://python-service:5000");
         }
 
+        public async Task UploadPdfLocal(IFormFile file, string tenantId)
+        {
+            var content = new MultipartFormDataContent();
+            using var fileContent = new StreamContent(file.OpenReadStream());
+            content.Add(fileContent, "file", file.FileName);
+
+
+        }
+
         public async Task UploadPdfAsync(IFormFile file, string tenantId)
         {
             var content = new MultipartFormDataContent();
