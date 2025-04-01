@@ -30,39 +30,29 @@ namespace Trish.Application.Services
 
         }
 
-        public async Task<List<string>> QueryDocumentsAsync(string question, string tenentId)
+        public async IAsyncEnumerable<string> QueryDocumentsAsync(string question, string tenentId)
         {
-            try
+            string collectionName = tenentId;
+
+            // First, diagnose the collection to understand its state
+            var collectionCheck = await _memoryService.CheckCollectionExistsAsync(collectionName);
+
+            // Log the incoming query details
+            _logger.LogInformation($"Querying collection: {collectionName}");
+            _logger.LogInformation($"Question: {question}");
+
+            // Fetch document context and await the results
+            //  var contexts = await _memoryService.FetchDocumentContextAsync(collectionName, question, 3);
+            // _logger.LogInformation($"contexts: {contexts}");
+
+
+            // Stream results using the streaming method from the memory service
+            await foreach (var result in _memoryService.QueryDocumentCollectionStreamAsync(
+                collectionName,
+                question))
             {
-                string collectionName = tenentId;
-
-                // First, diagnose the collection to understand its state
-                var collectionCheck = await _memoryService.CheckCollectionExistsAsync(collectionName);
-
-                // Log the incoming query details
-                _logger.LogInformation($"Querying collection: {collectionName}");
-                _logger.LogInformation($"Question: {question}");
-
-                // Fetch document context
-                var results = await _memoryService.FetchDocumentContextAsync(collectionName, question);
-
-                // Log the results
-                _logger.LogInformation($"Number of results found: {results.Count}");
-                foreach (var result in results)
-                {
-                    _logger.LogInformation($"Retrieved context: {result}");
-                }
-
-                return results;
-            }
-            catch (Exception ex)
-            {
-                // Log the full exception details
-                _logger.LogError($"Error in QueryDocumentsAsync: {ex.Message}");
-                _logger.LogError($"Stack Trace: {ex.StackTrace}");
-
-                // Optionally, you can rethrow or return an empty list
-                return new List<string>();
+                _logger.LogInformation($"Streaming result chunk: {result}");
+                yield return result;
             }
         }
     }

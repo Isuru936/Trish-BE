@@ -8,6 +8,7 @@ using iText.Kernel.Pdf.Canvas.Parser;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.SemanticKernel.Connectors.Qdrant;
 using Microsoft.SemanticKernel.Memory;
@@ -24,6 +25,7 @@ namespace Trish.Application.Services
         private readonly ILogger<SemanticMemoryService> logger;
         private readonly Kernel kernel;
         private readonly HttpClient httpClient;
+        private static string? _lastUsedCollection;
 
         public SemanticMemoryService(
             IConfiguration configuration,
@@ -176,18 +178,12 @@ namespace Trish.Application.Services
 
             try
             {
-                //string content = await httpClient.GetStringAsync(url);
                 string extractedText = await ExtractTextFromPdfAsync(url);
 
-                // await qdrantStore.DeleteCollectionAsync(collectionName);
 
-                // Split into manageable chunks
                 List<string> paragraphs = TextChunker.SplitPlainTextParagraphs(
                     TextChunker.SplitPlainTextLines(extractedText, 128),
                     1024);
-
-
-                // await memory.RemoveAsync(collectionName);
 
                 int savedCount = 0;
                 for (int i = 0; i < paragraphs.Count; i++)
@@ -287,6 +283,8 @@ namespace Trish.Application.Services
 
         #region Querying and Retrieval
 
+
+
         public async Task<QueryResponse> QueryDocumentsAsync(string question, string tenantId, bool streaming = false)
         {
             try
@@ -304,7 +302,6 @@ namespace Trish.Application.Services
                     };
                 }
 
-                // Get context from all tenant collections
                 List<string> allContext = new();
 
                 foreach (var collection in tenantCollections)
@@ -398,10 +395,8 @@ namespace Trish.Application.Services
         {
             try
             {
-                // Prepare context
                 StringBuilder contextBuilder = new();
 
-                // Add contexts if provided, otherwise fetch them
                 if (contexts != null && contexts.Count > 0)
                 {
                     foreach (var context in contexts)
@@ -411,7 +406,6 @@ namespace Trish.Application.Services
                 }
                 else
                 {
-                    // Search for relevant context if not provided
                     var searchResults = await FetchDocumentContextAsync(collectionName, question, 3);
                     foreach (var result1 in searchResults)
                     {
@@ -419,14 +413,11 @@ namespace Trish.Application.Services
                     }
                 }
 
-                // Create the prompt with context
                 string prompt = $"Context information:\n{contextBuilder}\n\nQuestion: {question}\n\nAnswer:";
 
-                // Get AI response using the kernel
                 var result = await kernel.InvokePromptAsync(prompt);
-                string response = result.ToString(); // Extract string from result
+                string response = result.ToString();
 
-                // Log the query and response
                 logger.LogInformation($"Queried collection {collectionName} with question: {question}");
 
                 return response;
@@ -451,85 +442,87 @@ namespace Trish.Application.Services
 
 
         // NOT IMPLEMENTED
-        public IAsyncEnumerable<string> QueryDocumentCollectionStreamAsync(
+        public IAsyncEnumerable<string> QueryDocumentCollectionStreamAsync2(
             string collectionName,
             string question,
             List<string> contexts = null,
             [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            // Note: We need to restructure this method to avoid yield returns in try/catch blocks
-            // which isn't allowed in C#
             throw new NotImplementedException();
-            // First, prepare all the resources we need
-            /* StringBuilder contextBuilder = new();
-            ChatHistory chatHistory = null;
-            IChatCompletionService completionService = null;
-
-            try
-            {
-                // Add contexts if provided, otherwise fetch them
-                if (contexts != null && contexts.Count > 0)
-                {
-                    foreach (var context in contexts)
-                    {
-                        contextBuilder.AppendLine(context);
-                    }
-                }
-                else
-                {
-                    // Search for relevant context
-                    var searchResults = await FetchDocumentContextAsync(collectionName, question, 3);
-                    foreach (var result in searchResults)
-                    {
-                        contextBuilder.AppendLine(result);
-                    }
-                }
-
-                // Create the prompt with context
-                string prompt = $"Context information:\n{contextBuilder}\n\nQuestion: {question}\n\nAnswer:";
-
-                // Set up chat completion service
-                completionService = kernel.GetRequiredService<IChatCompletionService>();
-                chatHistory = new ChatHistory();
-                chatHistory.AddSystemMessage("You are an assistant that helps answer questions based on provided context.");
-                chatHistory.AddUserMessage(prompt);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError($"Error preparing streaming query: {ex.Message}");
-                yield return $"An error occurred while preparing the response: {ex.Message}";
-                yield break;
-            }
-
-            // Now that we have prepared everything, stream the response
-            // This is outside the try/catch that prepares the resources
-            if (completionService != null && chatHistory != null)
-            {
-                try
-                {
-                    logger.LogInformation($"Starting streaming query for collection {collectionName}");
-
-                    await foreach (var message in completionService.GetStreamingChatMessageContentsAsync(
-                        chatHistory,
-                        cancellationToken: cancellationToken))
-                    {
-                        if (cancellationToken.IsCancellationRequested)
-                        {
-                            break;
-                        }
-
-                        yield return message.Content;
-                    }
-
-                    logger.LogInformation($"Completed streaming query for collection {collectionName}");
-                }
-                catch (Exception ex)
-                {
-                    logger.LogError($"Error during streaming response: {ex.Message}");
-                    yield return $"\nAn error occurred during streaming: {ex.Message}";
-                }
-            }*/
         }
+
+        public async IAsyncEnumerable<string> QueryDocumentCollectionStreamAsync(
+           string collectionName,
+           string question,
+           List<string> contexts = null,
+            int searchLimit = 3,
+           [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            // Get chat completion service
+            // var ai = kernel.GetRequiredService<IChatCompletionService>();
+
+            // Create chat history
+            // ChatHistory chat = new("You are an AI assistant that helps people find information.");
+
+
+            var ai = kernel.GetRequiredService<IChatCompletionService>();
+
+            // Create new chat history if collection name has changed
+            ChatHistory chat;
+            if (_lastUsedCollection != collectionName)
+            {
+                // Reset chat history when collection changes
+                chat = new("You are an AI assistant that helps people find information.");
+                _lastUsedCollection = collectionName;
+                logger.LogInformation($"Collection changed from {_lastUsedCollection} to {collectionName}. Chat history reset.");
+            }
+            else
+            {
+                // Use existing chat history
+                chat = new("You are an AI assistant that helps people find information. Note that you are a voice assistant");
+            }
+
+
+            // Add contexts if provided, otherwise fetch them
+            StringBuilder contextBuilder = new();
+
+            // Search for relevant context if not provided
+            await foreach (var result in (await CreateMemoryStoreAsync()).SearchAsync(
+                collectionName, question, limit: 3, minRelevanceScore: 0.1))
+            {
+                contextBuilder.AppendLine(result.Metadata.Text);
+            }
+
+            // Prepare context
+            int contextToRemove = -1;
+            if (contextBuilder.Length != 0)
+            {
+                contextBuilder.Insert(0, "Here's some additional information: ");
+                contextToRemove = chat.Count;
+                chat.AddUserMessage(contextBuilder.ToString());
+            }
+
+            // Add user question
+            chat.AddUserMessage(question);
+
+            // Stream AI response
+            await foreach (var message in ai.GetStreamingChatMessageContentsAsync(chat))
+            {
+                yield return message.Content;
+
+                // Check for cancellation
+                if (cancellationToken.IsCancellationRequested)
+                    break;
+            }
+
+            // Remove temporary context if added
+            if (contextToRemove >= 0)
+                chat.RemoveAt(contextToRemove);
+
+            // Log the query
+            logger.LogInformation($"Streamed query for collection {collectionName} with question: {question}");
+        }
+
 
         public IAsyncEnumerable<string> QueryDocumentCollectionStreamAsync(
             string collectionName,
@@ -538,7 +531,7 @@ namespace Trish.Application.Services
             CancellationToken cancellationToken = default)
         {
             // Pass through to main implementation without contexts
-            return QueryDocumentCollectionStreamAsync(collectionName, question, null, cancellationToken);
+            return QueryDocumentCollectionStreamAsync(collectionName, question);
         }
 
         #endregion
@@ -622,6 +615,7 @@ namespace Trish.Application.Services
                 logger.LogInformation($"Total sample records found: {recordCount}");
             }
         }
+
 
         #endregion
     }
