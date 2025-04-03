@@ -285,7 +285,7 @@ namespace Trish.Application.Services
 
 
 
-        public async Task<QueryResponse> QueryDocumentsAsync(string question, string tenantId, bool streaming = false)
+        public async Task<QueryResponse> QueryDocumentsAsync(string question, string tenantId, string organizatioon, bool streaming = false)
         {
             try
             {
@@ -317,7 +317,7 @@ namespace Trish.Application.Services
                     // Use streaming method - but collect into a single response for now
                     StringBuilder sb = new();
                     await foreach (var chunk in QueryDocumentCollectionStreamAsync(
-                        tenantCollections.First(), question, allContext))
+                        tenantCollections.First(), organizatioon, question, allContext))
                     {
                         sb.Append(chunk);
                     }
@@ -327,7 +327,7 @@ namespace Trish.Application.Services
                 {
                     // Use direct query
                     answer = await QueryDocumentCollectionAsync(
-                        tenantCollections.First(), question, allContext);
+                        tenantCollections.First(), question, organizatioon, allContext);
                 }
 
                 return new QueryResponse
@@ -391,6 +391,7 @@ namespace Trish.Application.Services
         public async Task<string> QueryDocumentCollectionAsync(
             string collectionName,
             string question,
+            string orgainzationName,
             List<string> contexts = null)
         {
             try
@@ -433,6 +434,7 @@ namespace Trish.Application.Services
         // NOT USED
         public async Task<string> QueryDocumentCollectionAsync(
             string collectionName,
+            string orgainzationName,
             string question,
             int searchLimit)
         {
@@ -453,85 +455,63 @@ namespace Trish.Application.Services
 
         public async IAsyncEnumerable<string> QueryDocumentCollectionStreamAsync(
            string collectionName,
+           string organizationName,
            string question,
            List<string> contexts = null,
             int searchLimit = 3,
            [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            // Get chat completion service
-            // var ai = kernel.GetRequiredService<IChatCompletionService>();
-
-            // Create chat history
-            // ChatHistory chat = new("You are an AI assistant that helps people find information.");
-
-
             var ai = kernel.GetRequiredService<IChatCompletionService>();
 
-            // Create new chat history if collection name has changed
             ChatHistory chat;
-            if (_lastUsedCollection != collectionName)
-            {
-                // Reset chat history when collection changes
-                chat = new("You are an AI assistant that helps people find information.");
-                _lastUsedCollection = collectionName;
-                logger.LogInformation($"Collection changed from {_lastUsedCollection} to {collectionName}. Chat history reset.");
-            }
-            else
-            {
-                // Use existing chat history
-                chat = new("You are an AI assistant that helps people find information. Note that you are a voice assistant");
-            }
+            logger.LogInformation($"Collection changed from {_lastUsedCollection} to {collectionName}. Chat history reset.");
+            chat = new("You are a voice assistant that helps users find information about their organization. " +
+                "Use the provided context to answer questions. If no relevant information is found in the context, inform the user that you don't have that specific information for their organization. " +
+                "The organization ID will be provided to you in the context. you don't need to respond with the organization");
 
-
-            // Add contexts if provided, otherwise fetch them
             StringBuilder contextBuilder = new();
 
-            // Search for relevant context if not provided
             await foreach (var result in (await CreateMemoryStoreAsync()).SearchAsync(
                 collectionName, question, limit: 3, minRelevanceScore: 0.1))
             {
                 contextBuilder.AppendLine(result.Metadata.Text);
             }
 
-            // Prepare context
             int contextToRemove = -1;
             if (contextBuilder.Length != 0)
             {
-                contextBuilder.Insert(0, "Here's some additional information: ");
+                contextBuilder.Insert(0, $"Here is information for organization ID {collectionName} but don't respond with the organization Id:\n\n");
+                logger.LogInformation($"Adding context for organization ID {collectionName}: {contextBuilder}");
                 contextToRemove = chat.Count;
                 chat.AddUserMessage(contextBuilder.ToString());
             }
 
-            // Add user question
             chat.AddUserMessage(question);
 
-            // Stream AI response
             await foreach (var message in ai.GetStreamingChatMessageContentsAsync(chat))
             {
                 yield return message.Content;
 
-                // Check for cancellation
                 if (cancellationToken.IsCancellationRequested)
                     break;
             }
 
-            // Remove temporary context if added
             if (contextToRemove >= 0)
                 chat.RemoveAt(contextToRemove);
 
-            // Log the query
             logger.LogInformation($"Streamed query for collection {collectionName} with question: {question}");
         }
 
 
         public IAsyncEnumerable<string> QueryDocumentCollectionStreamAsync(
+            string organizationName,
             string collectionName,
             string question,
             int searchLimit,
             CancellationToken cancellationToken = default)
         {
             // Pass through to main implementation without contexts
-            return QueryDocumentCollectionStreamAsync(collectionName, question);
+            return QueryDocumentCollectionStreamAsync(collectionName, organizationName, question);
         }
 
         #endregion

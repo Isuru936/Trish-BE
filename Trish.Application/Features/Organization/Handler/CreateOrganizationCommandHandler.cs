@@ -19,7 +19,7 @@ namespace Trish.Application.Features.Organization.Handler
 
         public async Task<Result> Handle(CreateOrganizationCommand command, CancellationToken cancellationToken)
         {
-            var organization = DomainEntities.Organization.Create(command.OrganizationName, command.Description);
+            var organization = DomainEntities.Organization.Create(command.OrganizationName, command.Description, command.ImageUrl);
             await repository.AddAsync(organization);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
             return Result.Success();

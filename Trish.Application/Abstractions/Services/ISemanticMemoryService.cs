@@ -9,10 +9,11 @@ namespace Trish.Application.Abstractions.Services
         Task<bool> CheckCollectionExistsAsync(string collectionName);
         Task PopulateCollectionFromWebAsync(string url, string collectionName);
         Task PopulatePdfCollectionAsync(string pdfPath, string collectionName);
-        Task<string> QueryDocumentCollectionAsync(string collectionName, string question, int searchLimit = 3);
+        Task<string> QueryDocumentCollectionAsync(string collectionName, string question, string organization, int searchLimit = 3);
         //Task<QueryResponse> QueryDocumentsAsync(string question, string tenantId, bool streaming = false);
 
         IAsyncEnumerable<string> QueryDocumentCollectionStreamAsync(
+            string organisation,
             string collectionName,
             string question,
            List<string> contexts = null,

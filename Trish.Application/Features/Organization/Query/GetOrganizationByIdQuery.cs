@@ -4,9 +4,5 @@ using Trish.Application.Shared;
 
 namespace Trish.Application.Features.Organization.Query
 {
-    public class GetAllOrganizationsQuery : IQuery<Result<List<OrganizationResponse>>>
-    {
-    }
+    public sealed record GetOrganizationByIdQuery(Guid id) : IQuery<Result<OrganizationResponse>>;
 }
-
-

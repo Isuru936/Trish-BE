@@ -8,21 +8,23 @@ using DomainEntities = Trish.Domain.Entities;
 
 namespace Trish.Application.Features.Organization.Handler
 {
-    public class GetAllOrganizationsQueryHandler : IQueryHandler<GetAllOrganizationsQuery, Result<List<OrganizationResponse>>>
+    public class GetOrganizationByIdQueryHandler : IQueryHandler<GetOrganizationByIdQuery, Result<OrganizationResponse>>
     {
         private readonly IGenericRepository<DomainEntities.Organization> genericRepository;
         private readonly IMapper mapper;
 
-        public GetAllOrganizationsQueryHandler(IGenericRepository<DomainEntities.Organization> genericRepository, IMapper mapper)
+        public GetOrganizationByIdQueryHandler(IGenericRepository<DomainEntities.Organization> genericRepository, IMapper mapper)
         {
             this.genericRepository = genericRepository;
             this.mapper = mapper;
         }
 
-        public async Task<Result<List<OrganizationResponse>>> Handle(GetAllOrganizationsQuery request, CancellationToken cancellationToken)
+        public async Task<Result<OrganizationResponse>> Handle(GetOrganizationByIdQuery request, CancellationToken cancellationToken)
         {
-            var organizations = await genericRepository.GetAllAsync();
-            return Result.Success(mapper.Map<List<OrganizationResponse>>(organizations));
+            var organization = await genericRepository.Get(request.id);
+
+            return Result.Success(mapper.Map<OrganizationResponse>(organization));
+
         }
     }
 }

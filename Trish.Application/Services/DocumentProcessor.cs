@@ -30,7 +30,7 @@ namespace Trish.Application.Services
 
         }
 
-        public async IAsyncEnumerable<string> QueryDocumentsAsync(string question, string tenentId)
+        public async IAsyncEnumerable<string> QueryDocumentsAsync(string question, string tenentId, string organization)
         {
             string collectionName = tenentId;
 
@@ -49,6 +49,7 @@ namespace Trish.Application.Services
             // Stream results using the streaming method from the memory service
             await foreach (var result in _memoryService.QueryDocumentCollectionStreamAsync(
                 collectionName,
+                organization,
                 question))
             {
                 _logger.LogInformation($"Streaming result chunk: {result}");

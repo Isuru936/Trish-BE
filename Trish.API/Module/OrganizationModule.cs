@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Trish.API.Interfaces;
 using Trish.Application.Features.Organization.Command;
+using Trish.Application.Features.Organization.Query;
 
 namespace Trish.API.Module
 {
@@ -13,19 +14,26 @@ namespace Trish.API.Module
                 .WithTags("organization");
 
             MapGroup.MapPost(
-                "/organization",
+                "/",
                 async (CreateOrganizationCommand command, [FromServices] IMediator _mediator) =>
                 {
                     return Results.Ok(await _mediator.Send(command));
                 }
             );
 
-            /* MapGroup.MapGet(
+            MapGroup.MapGet(
                 "/getAll",
-                async (GetAllOrganizationsQuery query, [FromServicesAttribute] IMediator _mediator) =>
+                async ([FromServices] IMediator _mediator) =>
                 {
-                    return Results.Ok(await _mediator.Send(query));
-                }); */
+                    return Results.Ok(await _mediator.Send(new GetAllOrganizationsQuery()));
+                });
+
+            MapGroup.MapGet(
+                "/{id}",
+                async (Guid id, [FromServices] IMediator _mediator) =>
+                {
+                    return Results.Ok(await _mediator.Send(new GetOrganizationByIdQuery(id)));
+                });
 
         }
     }

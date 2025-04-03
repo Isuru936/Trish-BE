@@ -35,7 +35,7 @@ namespace Trish.API.Module
                 async (RequestBody request, DocumentProcessor documentApiClient, OpenAIService openAi, [FromServicesAttribute] ICloudflareServices cloudflareServices, [FromServicesAttribute] IHttpContextAccessor contextAccessor) =>
                 {
 
-                    var response = documentApiClient.QueryDocumentsAsync(request.question, request.tenant_id);
+                    var response = documentApiClient.QueryDocumentsAsync(request.question, request.tenant_id, request.organization);
                     //var optimizedResponse = await openAi.RefineResponseAsync(request.question, response);
                     // response.Answer = optimizedResponse;
                     return response;
@@ -80,5 +80,6 @@ namespace Trish.API.Module
     {
         public string question { get; set; }
         public string tenant_id { get; set; }
+        public string organization { get; set; }
     }
 }
