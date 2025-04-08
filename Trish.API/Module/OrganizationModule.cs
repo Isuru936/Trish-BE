@@ -10,7 +10,7 @@ namespace Trish.API.Module
     {
         public void MapEndpoint(WebApplication app)
         {
-            var MapGroup = app.MapGroup("Organization")
+            var MapGroup = app.MapGroup("api/organization")
                 .WithTags("organization");
 
             MapGroup.MapPost(
