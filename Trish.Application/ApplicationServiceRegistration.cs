@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
 using System.Reflection;
+using Trish.Application.Abstractions.Messaging;
 using Trish.Application.Abstractions.Services;
 using Trish.Application.Behaviours;
 using Trish.Application.Features.Auth.Command;
@@ -66,17 +67,6 @@ namespace Trish.Application
 
                 return cluster.Connect(configuration["CassandraSettings:KeySpace"]); // Replace with your actual keyspace
             });
-
-            services.AddSingleton<CassandraVectorSearch>(sp =>
-                new CassandraVectorSearch(configuration)
-            );
-
-            services.AddSingleton<PdfProcessor>(sp =>
-                new PdfProcessor(
-                    configuration["CassandraSettings:ContactPoints"]!, // Use "cassandra" if running in Docker Compose
-                    configuration["OpenAI:ApiKey"]!,
-                    configuration["CassandraSettings:KeySpace"]!)
-            );
 
             services.AddAutoMapper(Assembly.GetExecutingAssembly());
 

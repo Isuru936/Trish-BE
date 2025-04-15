@@ -32,21 +32,18 @@ namespace Trish.API.Module
             }).DisableAntiforgery();
 
             MapGroup.MapPost("/query",
-                async (RequestBody request, DocumentProcessor documentApiClient, OpenAIService openAi, [FromServicesAttribute] ICloudflareServices cloudflareServices, [FromServicesAttribute] IHttpContextAccessor contextAccessor) =>
+                async ([FromBody] RequestBody request, [FromServices] DocumentProcessor documentApiClient, [FromServices] IHttpContextAccessor contextAccessor) =>
                 {
+                    string tenantID = contextAccessor.HttpContext?.Request.Headers["TenantID"]!.FirstOrDefault();
 
                     var response = documentApiClient.QueryDocumentsAsync(request.question, request.tenant_id, request.organization);
-                    //var optimizedResponse = await openAi.RefineResponseAsync(request.question, response);
-                    // response.Answer = optimizedResponse;
                     return response;
                 });
 
             MapGroup.MapGet("/fetchDocs",
-                async ([FromServicesAttribute] ICloudflareServices cloudfare, [FromServicesAttribute] IHttpContextAccessor contextAccessor) =>
+                async ([FromServices] ICloudflareServices cloudfare, [FromServices] IHttpContextAccessor contextAccessor) =>
                 {
                     string tenantID = contextAccessor.HttpContext?.Request.Headers["TenantID"]!.FirstOrDefault();
-
-                    // tenantID = "55241378-c72b-4fe9-ae9b-b8535ef62fd8";
 
                     if (string.IsNullOrEmpty(tenantID))
                     {
@@ -78,8 +75,8 @@ namespace Trish.API.Module
 
     class RequestBody
     {
-        public string question { get; set; }
-        public string tenant_id { get; set; }
-        public string organization { get; set; }
+        public string question { get; set; } = string.Empty;
+        public string tenant_id { get; set; } = string.Empty;
+        public string organization { get; set; } = string.Empty;
     }
 }

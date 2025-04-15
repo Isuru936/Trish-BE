@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Trish.Identitty\Trish.Identitty.csproj" />
+    <ProjectReference Include="..\Trish.Identitty\Trish.Identitty.csproj" />
     <ProjectReference Include="..\Trish.Application\Trish.Application.csproj" />
     <ProjectReference Include="..\Trish.Infrastructure\Trish.Infrastructure.csproj" />
   </ItemGroup>
