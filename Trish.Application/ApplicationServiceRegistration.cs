@@ -12,6 +12,8 @@ using Trish.Application.Behaviours;
 using Trish.Application.Features.Auth.Command;
 using Trish.Application.Features.Auth.Validator;
 using Trish.Application.Services;
+using Trish.Infrastructure;
+
 namespace Trish.Application
 {
     public static class ApplicationServiceRegistration
@@ -20,8 +22,8 @@ namespace Trish.Application
         {
             services.AddLogging(configure =>
             {
-                configure.AddConsole(); // Adds console logging
-                configure.AddDebug();   // Adds debug output logging
+                configure.AddConsole();
+                configure.AddDebug();
                 configure.SetMinimumLevel(LogLevel.Information);
             });
 
@@ -31,6 +33,7 @@ namespace Trish.Application
                     ?? throw new InvalidOperationException("OpenAI API key not configured");
 
                 var kernelBuilder = Kernel.CreateBuilder();
+
                 kernelBuilder.AddOpenAIChatCompletion("gpt-3.5-turbo-0125", apiKey);
                 kernelBuilder.AddQdrantVectorStore("http://localhost:6333");
 #pragma warning disable SKEXP0010
@@ -39,12 +42,14 @@ namespace Trish.Application
                 kernelBuilder.Services.AddLogging();
                 kernelBuilder.Services.AddQdrantVectorStore("localhost");
 
+                kernelBuilder.Services.AddScoped<ITenantSchemaRegistry, TenantSchemaRegistry>();
+                kernelBuilder.Services.AddScoped<MultiTenantDatabaseQueryService>();
+
                 return kernelBuilder.Build();
             });
 
-
-            // Semantic Memory Service Registration
             services.AddScoped<ISemanticMemoryService, SemanticMemoryService>();
+            // services.AddScoped<MultiTenantDatabaseQueryService>(); // Register this directly with the main DI container
 
             services.AddScoped<DocumentProcessor>();
 

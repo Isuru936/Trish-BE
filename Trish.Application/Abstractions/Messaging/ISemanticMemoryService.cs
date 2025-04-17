@@ -1,4 +1,5 @@
 ﻿using Microsoft.SemanticKernel.Memory;
+using System.Runtime.CompilerServices;
 
 namespace Trish.Application.Abstractions.Messaging
 {
@@ -19,5 +20,9 @@ namespace Trish.Application.Abstractions.Messaging
             CancellationToken cancellationToken = default);
 
         Task<bool> CheckCollectionExistsAsync(string collectionName);
+        IAsyncEnumerable<string> HybridQueryAsync(
+            string tenantId,
+            string question,
+            [EnumeratorCancellation] CancellationToken cancellation = default);
     }
 }

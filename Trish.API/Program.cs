@@ -12,8 +12,8 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddHttpClient();
 
-builder.Services.ConfigureInfrastructureService(cfg);
 builder.Services.ConfigureApplicationServices(cfg);
+builder.Services.ConfigureInfrastructureService(cfg);
 builder.Services.ConfigureIdentityService(cfg);
 
 

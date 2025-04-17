@@ -31,14 +31,23 @@ namespace Trish.Application.Services
             _logger.LogInformation($"Querying collection: {collectionName}");
             _logger.LogInformation($"Question: {question}");
 
-            await foreach (var result in _memoryService.QueryDocumentCollectionStreamAsync(
+
+            await foreach (var result in _memoryService.HybridQueryAsync(
+                collectionName,
+                organization))
+            {
+                _logger.LogInformation($"Streaming result chunk: {result}");
+                yield return result;
+            }
+
+            /* await foreach (var result in _memoryService.QueryDocumentCollectionStreamAsync(
                 collectionName,
                 organization,
                 question))
             {
                 _logger.LogInformation($"Streaming result chunk: {result}");
                 yield return result;
-            }
+            } */
         }
     }
 }

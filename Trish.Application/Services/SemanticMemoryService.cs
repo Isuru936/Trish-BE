@@ -16,6 +16,7 @@ using Microsoft.SemanticKernel.Text;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Trish.Application.Abstractions.Messaging;
+using Trish.Application.Abstractions.Services;
 
 namespace Trish.Application.Services
 {
@@ -25,22 +26,25 @@ namespace Trish.Application.Services
         private readonly ILogger<SemanticMemoryService> logger;
         private readonly Kernel kernel;
         private readonly HttpClient httpClient;
+        private readonly ITenantSchemaRegistry schemaRegistry;
+        private readonly MultiTenantDatabaseQueryService dbQueryService;
         private static string? _lastUsedCollection;
 
         public SemanticMemoryService(
             IConfiguration configuration,
             ILogger<SemanticMemoryService> logger,
             Kernel kernel,
-            HttpClient httpClient = null)
+            HttpClient httpClient = null,
+            ITenantSchemaRegistry schemaRegistry = null,
+            MultiTenantDatabaseQueryService dbQueryService = null)
         {
             this.configuration = configuration;
             this.logger = logger;
             this.kernel = kernel;
             this.httpClient = httpClient ?? new HttpClient();
+            this.schemaRegistry = schemaRegistry;
+            this.dbQueryService = dbQueryService;
         }
-
-        #region Core Memory Management
-
 
         public async Task<ISemanticTextMemory> CreateMemoryStoreAsync()
         {
@@ -108,7 +112,6 @@ namespace Trish.Application.Services
 
         private async Task<string> ExtractTextFromPdfAsync(string pdfPath)
         {
-            // Use Task.Run to move the synchronous PDF processing to a background thread
             return await Task.Run(() =>
             {
                 using (PdfReader reader = new PdfReader(pdfPath))
@@ -134,14 +137,6 @@ namespace Trish.Application.Services
                 }
             });
         }
-
-
-
-
-        // NOT USED
-
-        // NOT IMPLEMENTED
-
 
         public async IAsyncEnumerable<string> QueryDocumentCollectionStreamAsync(
            string collectionName,
@@ -192,7 +187,70 @@ namespace Trish.Application.Services
             logger.LogInformation($"Streamed query for collection {collectionName} with question: {question}");
         }
 
-        #endregion
+        public async IAsyncEnumerable<string> HybridQueryAsync(
+            string tenantId,
+            string question,
+            [EnumeratorCancellation] CancellationToken cancellation = default)
+        {
+            // var schemaRegistry = kernel.GetRequiredService<ITenantSchemaRegistry>();
+            // var dbQueryService = kernel.GetRequiredService<MultiTenantDatabaseQueryService>();
+            var ai = kernel.GetRequiredService<IChatCompletionService>();
+
+            logger.LogInformation("Im here in the hybrid query service: {TenantId}", tenantId);
+
+            var schemaDefinition = await schemaRegistry.GetTenantSchemaDefinitionAsync(tenantId);
+
+            var router = new HybridQueryRouter(ai, logger);
+
+            var (queryType, reformulatedQuery) = await router.ClassifyQueryAsync(
+                tenantId,
+                question,
+                schemaDefinition);
+
+            var chatHistory = new ChatHistory(
+                "You are a helpful assistant that answers questions based on provided information. " +
+                "If the information contains database results, format them in a readable way. " +
+                "Be concise and direct in your answers.");
+            queryType = Domain.Enums.QueryType.VectorSearch; // For testing purposes
+
+            switch (queryType)
+            {
+                case Domain.Enums.QueryType.DatabaseQuery:
+                    var dbResult = await dbQueryService.ExecuteNaturalLanguageQueryAsync(
+                        tenantId,
+                        reformulatedQuery);
+                    break;
+
+                case Domain.Enums.QueryType.VectorSearch:
+
+                    /* var memory = await CreateMemoryStoreAsync();
+                    var results = memory.SearchAsync(
+                        collection: tenantId,
+                        query: reformulatedQuery,
+                        limit: 3,
+                        minRelevanceScore: 0.1); */
+                    StringBuilder contextBuilder = new();
+                    await foreach (var result in (await CreateMemoryStoreAsync()).SearchAsync(
+                        tenantId, question, limit: 3, minRelevanceScore: 0.1))
+                    {
+                        contextBuilder.AppendLine(result.Metadata.Text);
+                        logger.LogInformation("Got the result: {Result}", result.Metadata.Text);
+                    }
+                    logger.LogInformation("Got the result line 240");
+                    break;
+
+                case Domain.Enums.QueryType.Hybrid:
+                    logger.LogInformation("GOT HYBRID");
+                    break;
+            }
+
+            chatHistory.AddUserMessage(question);
+
+            await foreach (var message in ai.GetStreamingChatMessageContentsAsync(chatHistory))
+            {
+                yield return message.Content;
+            }
+        }
 
     }
 }

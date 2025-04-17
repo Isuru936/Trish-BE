@@ -3,7 +3,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System.Data;
 using Trish.Application.Abstractions.Persistence;
+using Trish.Application.Abstractions.Services;
 using Trish.Infrastructure.Repositories;
 
 namespace Trish.Infrastructure
@@ -26,8 +28,17 @@ namespace Trish.Infrastructure
                 .EnableSensitiveDataLogging();  // Only in development
             });
 
+            services.AddTransient<IDbConnection>(sp =>
+            {
+                var connectionString = configuration.GetConnectionString("IdentityConnection");
+                return new Npgsql.NpgsqlConnection(connectionString);
+            });
+
             services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
             services.AddScoped(typeof(IUnitOfWork), typeof(UnitOfWork));
+
+            services.AddScoped<ITenantSchemaRegistry, TenantSchemaRegistry>();
+            services.AddScoped<IPostgresTenantConnectionManager, PostgresTenantConnectionManager>();
 
             return services;
         }
