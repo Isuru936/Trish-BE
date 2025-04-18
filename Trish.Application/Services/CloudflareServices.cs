@@ -33,6 +33,28 @@ namespace Trish.Application.Services
             _publicUrl = publicUrl;
         }
 
+        public async Task DeleteFileAsync(string tenantId, string fileName)
+        {
+            try
+            {
+                var deleteRequest = new Amazon.S3.Model.DeleteObjectRequest
+                {
+                    BucketName = _bucketName,
+                    Key = $"{Path.GetFileNameWithoutExtension(fileName)}-*-{tenantId}.pdf"
+                };
+
+                await _s3Client.DeleteObjectAsync(deleteRequest);
+            }
+            catch (AmazonS3Exception s3Ex)
+            {
+                throw new Exception($"Failed to delete file: {s3Ex.Message}", s3Ex);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Failed to delete file: {ex.Message}", ex);
+            }
+        }
+
         public async Task<R2UploadResult> UploadFileAsync(Stream fileStream, string tenantId, string fileName, string contentType)
         {
             try

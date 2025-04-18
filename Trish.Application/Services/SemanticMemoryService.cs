@@ -39,9 +39,6 @@ namespace Trish.Application.Services
             this.httpClient = httpClient ?? new HttpClient();
         }
 
-        #region Core Memory Management
-
-
         public async Task<ISemanticTextMemory> CreateMemoryStoreAsync()
         {
             string apiKey = configuration["OpenAI:ApiKey"]!;
@@ -64,7 +61,7 @@ namespace Trish.Application.Services
             return collections.Contains(collectionName);
         }
 
-        public async Task PopulatePdfCollectionAsync(string pdfPath, string collectionName)
+        public async Task PopulatePdfCollectionAsync(string pdfPath, string collectionName, string fileName)
         {
             try
             {
@@ -73,7 +70,6 @@ namespace Trish.Application.Services
 
                 string qdrantUrl = configuration["QdrantSettings:Url"] ?? "http://localhost:6333/";
                 var qdrantStore = new QdrantMemoryStore(qdrantUrl, 384);
-
 
                 List<string> paragraphs = TextChunker.SplitPlainTextParagraphs(
                     TextChunker.SplitPlainTextLines(extractedText, 15),
@@ -85,7 +81,7 @@ namespace Trish.Application.Services
                     if (string.IsNullOrWhiteSpace(paragraphs[i]))
                         continue;
 
-                    string uniqueId = $"paragraph_{Guid.NewGuid()}";
+                    string uniqueId = $"{fileName.Split(".pdf")[0]}_{i}";
 
                     logger.LogInformation($"{paragraphs[i]}");
 
@@ -134,14 +130,6 @@ namespace Trish.Application.Services
                 }
             });
         }
-
-
-
-
-        // NOT USED
-
-        // NOT IMPLEMENTED
-
 
         public async IAsyncEnumerable<string> QueryDocumentCollectionStreamAsync(
            string collectionName,
@@ -192,7 +180,29 @@ namespace Trish.Application.Services
             logger.LogInformation($"Streamed query for collection {collectionName} with question: {question}");
         }
 
-        #endregion
+        public async Task DeleteDocumentFromVectorDb(string tenantId, string fileName)
+        {
+            var memory = await CreateMemoryStoreAsync();
+            string baseName = fileName.Split("-*-")[0];
+
+            MemoryQueryResult? records;
+            int i = 0;
+            do
+            {
+                string recordId = $"{baseName}_{i}";
+
+                records = await memory.GetAsync(tenantId, recordId);
+
+                if (records != null)
+                {
+                    await memory.RemoveAsync(tenantId, recordId);
+                    logger.LogInformation($"Deleted record with ID: {recordId}");
+                }
+                i++;
+            } while (records != null);
+
+            logger.LogInformation($"Completed deletion of all chunks for document: {fileName}");
+        }
 
     }
 }

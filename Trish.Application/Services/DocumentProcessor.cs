@@ -16,9 +16,9 @@ namespace Trish.Application.Services
             _logger = logger;
         }
 
-        public async Task ProcessDocumentsAsync(string fileUrlPath, string tenentId)
+        public async Task ProcessDocumentsAsync(string fileUrlPath, string tenentId, string fileName)
         {
-            await _memoryService.PopulatePdfCollectionAsync(fileUrlPath, tenentId);
+            await _memoryService.PopulatePdfCollectionAsync(fileUrlPath, tenentId, fileName);
         }
 
         public async IAsyncEnumerable<string> QueryDocumentsAsync(string question, string tenentId, string organization)
@@ -39,6 +39,12 @@ namespace Trish.Application.Services
                 _logger.LogInformation($"Streaming result chunk: {result}");
                 yield return result;
             }
+        }
+
+        public async Task DeleteDocument(string tenantId, string fileName)
+        {
+            await _memoryService.DeleteDocumentFromVectorDb(tenantId, fileName);
+            _logger.LogInformation($"Deleted document {fileName} from tenant {tenantId}.");
         }
     }
 }

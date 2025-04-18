@@ -7,7 +7,7 @@ namespace Trish.Application.Abstractions.Messaging
 #pragma warning disable SKEXP0001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
         Task<ISemanticTextMemory> CreateMemoryStoreAsync();
         // Task PopulateCollectionFromWebAsync(string url, string collectionName);
-        Task PopulatePdfCollectionAsync(string pdfPath, string collectionName);
+        Task PopulatePdfCollectionAsync(string pdfPath, string collectionName, string fileName);
         // Task<string> QueryDocumentCollectionAsync(string collectionName, string question, string organization, int searchLimit = 3);
 
         IAsyncEnumerable<string> QueryDocumentCollectionStreamAsync(
@@ -19,5 +19,8 @@ namespace Trish.Application.Abstractions.Messaging
             CancellationToken cancellationToken = default);
 
         Task<bool> CheckCollectionExistsAsync(string collectionName);
+
+        Task DeleteDocumentFromVectorDb(string tenantId, string fileName);
+
     }
 }

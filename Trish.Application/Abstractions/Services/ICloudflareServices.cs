@@ -7,5 +7,6 @@ namespace Trish.Application.Abstractions.Services
     {
         Task<R2UploadResult> UploadFileAsync(Stream fileStream, string tenantId, string fileName, string contentType);
         Task<List<R2DocumentLink>> GetDocumentLinksAsync(string tenantId);
+        Task DeleteFileAsync(string tenantId, string fileName);
     }
 }
