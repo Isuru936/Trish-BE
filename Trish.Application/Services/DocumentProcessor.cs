@@ -7,13 +7,16 @@ namespace Trish.Application.Services
     {
         private readonly ISemanticMemoryService _memoryService;
         private readonly ILogger<DocumentProcessor> _logger;
+        private readonly MultiTenantDatabaseQueryService _databaseQueryService;
 
         public DocumentProcessor(
             ISemanticMemoryService memoryService,
-            ILogger<DocumentProcessor> logger)
+            ILogger<DocumentProcessor> logger,
+            MultiTenantDatabaseQueryService databaseQueryService)
         {
             _memoryService = memoryService;
             _logger = logger;
+            _databaseQueryService = databaseQueryService;
         }
 
         public async Task ProcessDocumentsAsync(string fileUrlPath, string tenentId)
@@ -21,7 +24,7 @@ namespace Trish.Application.Services
             await _memoryService.PopulatePdfCollectionAsync(fileUrlPath, tenentId);
         }
 
-        public async IAsyncEnumerable<string> QueryDocumentsAsync(string question, string tenentId, string organization)
+        public async IAsyncEnumerable<string> QueryDocumentsAsync(string question, string tenentId, string organization, bool useDbQuery)
         {
             string collectionName = tenentId;
 
@@ -31,23 +34,55 @@ namespace Trish.Application.Services
             _logger.LogInformation($"Querying collection: {collectionName}");
             _logger.LogInformation($"Question: {question}");
 
-
-            await foreach (var result in _memoryService.HybridQueryAsync(
-                collectionName,
-                organization))
+            if (!useDbQuery)
             {
-                _logger.LogInformation($"Streaming result chunk: {result}");
-                yield return result;
+                await foreach (var result in _memoryService.QueryDocumentCollectionStreamAsync(
+                 collectionName,
+                 organization,
+                 question))
+                {
+                    _logger.LogInformation($"Streaming result chunk: {result}");
+                    yield return result;
+                }
             }
-
-            /* await foreach (var result in _memoryService.QueryDocumentCollectionStreamAsync(
-                collectionName,
-                organization,
-                question))
+            else
             {
-                _logger.LogInformation($"Streaming result chunk: {result}");
-                yield return result;
-            } */
+                await foreach (var result in _memoryService.HybridQueryAsync(
+                    tenentId,
+                    collectionName,
+                    organization))
+                {
+                    _logger.LogInformation($"Streaming result chunk: {result}");
+                    yield return result;
+                }
+            }
         }
+
+        public async Task<string> UploadCsvAsync(Stream csvFile, string tableName, string tenantId, bool hasHeaderRow = true, char delimiter = ',')
+        {
+            _logger.LogInformation($"Processing CSV upload for tenant {tenantId} to table {tableName}");
+
+            try
+            {
+                // Pass the CSV stream to the database query service
+                var result = await _databaseQueryService.UploadCsvToTableAsync(
+                    tenantId,
+                    tableName,
+                    csvFile,
+                    hasHeaderRow,
+                    delimiter
+                );
+
+                _logger.LogInformation($"CSV upload complete for tenant {tenantId} to table {tableName}");
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error uploading CSV for tenant {tenantId} to table {tableName}");
+                throw;
+            }
+        }
+
+
     }
 }

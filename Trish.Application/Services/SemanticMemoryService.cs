@@ -190,66 +190,41 @@ namespace Trish.Application.Services
         public async IAsyncEnumerable<string> HybridQueryAsync(
             string tenantId,
             string question,
+            string organizationName,
+            bool useDbQuery = false,
             [EnumeratorCancellation] CancellationToken cancellation = default)
         {
-            // var schemaRegistry = kernel.GetRequiredService<ITenantSchemaRegistry>();
-            // var dbQueryService = kernel.GetRequiredService<MultiTenantDatabaseQueryService>();
             var ai = kernel.GetRequiredService<IChatCompletionService>();
-
             logger.LogInformation("Im here in the hybrid query service: {TenantId}", tenantId);
 
             var schemaDefinition = await schemaRegistry.GetTenantSchemaDefinitionAsync(tenantId);
-
-            var router = new HybridQueryRouter(ai, logger);
-
-            var (queryType, reformulatedQuery) = await router.ClassifyQueryAsync(
-                tenantId,
-                question,
-                schemaDefinition);
-
             var chatHistory = new ChatHistory(
-                "You are a helpful assistant that answers questions based on provided information. " +
-                "If the information contains database results, format them in a readable way. " +
-                "Be concise and direct in your answers.");
-            queryType = Domain.Enums.QueryType.VectorSearch; // For testing purposes
+            "You are a helpful assistant that answers questions based on provided information. " +
+            "If the information contains database results, format them in a readable way. " +
+            "Be concise and direct in your answers.");
 
-            switch (queryType)
-            {
-                case Domain.Enums.QueryType.DatabaseQuery:
-                    var dbResult = await dbQueryService.ExecuteNaturalLanguageQueryAsync(
-                        tenantId,
-                        reformulatedQuery);
-                    break;
+            var dbResult = await dbQueryService.ExecuteNaturalLanguageQueryAsync(
+                tenantId,
+                question);
 
-                case Domain.Enums.QueryType.VectorSearch:
-
-                    /* var memory = await CreateMemoryStoreAsync();
-                    var results = memory.SearchAsync(
-                        collection: tenantId,
-                        query: reformulatedQuery,
-                        limit: 3,
-                        minRelevanceScore: 0.1); */
-                    StringBuilder contextBuilder = new();
-                    await foreach (var result in (await CreateMemoryStoreAsync()).SearchAsync(
-                        tenantId, question, limit: 3, minRelevanceScore: 0.1))
-                    {
-                        contextBuilder.AppendLine(result.Metadata.Text);
-                        logger.LogInformation("Got the result: {Result}", result.Metadata.Text);
-                    }
-                    logger.LogInformation("Got the result line 240");
-                    break;
-
-                case Domain.Enums.QueryType.Hybrid:
-                    logger.LogInformation("GOT HYBRID");
-                    break;
-            }
-
+            chatHistory.AddSystemMessage($"Database query results for tenant {tenantId}: {dbResult}");
             chatHistory.AddUserMessage(question);
 
-            await foreach (var message in ai.GetStreamingChatMessageContentsAsync(chatHistory))
+            await foreach (var message in ai.GetStreamingChatMessageContentsAsync(
+            chatHistory))
             {
                 yield return message.Content;
             }
+            /* else
+            {
+                await foreach (var messagePart in QueryDocumentCollectionStreamAsync(
+                    tenantId,
+                    organizationName,
+                    question))
+                {
+                    yield return messagePart;
+                }
+            } */
         }
 
     }

@@ -15,7 +15,7 @@ namespace Trish.API.Module
 
             MapGroup.MapPost(
                 "/",
-                async (CreateOrganizationCommand command, [FromServices] IMediator _mediator) =>
+                async (UpdateOrganizationCommand command, [FromServices] IMediator _mediator) =>
                 {
                     return Results.Ok(await _mediator.Send(command));
                 }

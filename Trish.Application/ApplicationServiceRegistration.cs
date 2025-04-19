@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.ChatCompletion;
 using System.Reflection;
 using Trish.Application.Abstractions.Messaging;
 using Trish.Application.Abstractions.Services;
@@ -48,8 +49,14 @@ namespace Trish.Application
                 return kernelBuilder.Build();
             });
 
+            services.AddSingleton<IChatCompletionService>(sp =>
+            {
+                var kernel = sp.GetRequiredService<Kernel>();
+                return kernel.GetRequiredService<IChatCompletionService>();
+            });
+
             services.AddScoped<ISemanticMemoryService, SemanticMemoryService>();
-            // services.AddScoped<MultiTenantDatabaseQueryService>(); // Register this directly with the main DI container
+            services.AddScoped<MultiTenantDatabaseQueryService>(); // Register this directly with the main DI container
 
             services.AddScoped<DocumentProcessor>();
 

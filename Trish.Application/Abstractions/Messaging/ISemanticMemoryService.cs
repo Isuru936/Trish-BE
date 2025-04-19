@@ -20,9 +20,12 @@ namespace Trish.Application.Abstractions.Messaging
             CancellationToken cancellationToken = default);
 
         Task<bool> CheckCollectionExistsAsync(string collectionName);
+
         IAsyncEnumerable<string> HybridQueryAsync(
             string tenantId,
             string question,
+            string organizationName,
+            bool useDbQuery = false,
             [EnumeratorCancellation] CancellationToken cancellation = default);
     }
 }
