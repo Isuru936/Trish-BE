@@ -6,5 +6,6 @@ namespace Trish.Application.Features.Organization.Command
     {
         public string OrganizationName { get; init; }
         public string Description { get; init; }
+        // public string ImageUrl { get; set; }
     }
 }

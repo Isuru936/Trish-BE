@@ -27,9 +27,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		Directory.Build.props = Directory.Build.props
 	EndProjectSection
 EndProject
-Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{3D75F75B-A75B-4D31-9C1D-7C0B17E85526}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Trish.Identitty", "..\Trish.Identitty\Trish.Identitty.csproj", "{40A5DEF8-21F7-4D39-8425-326E704797AA}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Trish.Identitty", "Trish.Identitty\Trish.Identitty.csproj", "{40A5DEF8-21F7-4D39-8425-326E704797AA}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -53,10 +51,6 @@ Global
 		{0FF09BF1-1428-4275-8AE3-1C62A5CE87E4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0FF09BF1-1428-4275-8AE3-1C62A5CE87E4}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0FF09BF1-1428-4275-8AE3-1C62A5CE87E4}.Release|Any CPU.Build.0 = Release|Any CPU
-		{3D75F75B-A75B-4D31-9C1D-7C0B17E85526}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{3D75F75B-A75B-4D31-9C1D-7C0B17E85526}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{3D75F75B-A75B-4D31-9C1D-7C0B17E85526}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{3D75F75B-A75B-4D31-9C1D-7C0B17E85526}.Release|Any CPU.Build.0 = Release|Any CPU
 		{40A5DEF8-21F7-4D39-8425-326E704797AA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{40A5DEF8-21F7-4D39-8425-326E704797AA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{40A5DEF8-21F7-4D39-8425-326E704797AA}.Release|Any CPU.ActiveCfg = Release|Any CPU

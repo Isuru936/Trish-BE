@@ -4,11 +4,13 @@ using Trish.Application.Abstractions.Messaging;
 using Trish.Application.Abstractions.Persistence;
 using Trish.Application.Features.Auth.Command;
 using Trish.Application.Shared;
+using Trish.Domain.Entities;
 
 public class SignUpCommandHandler : ICommandHandler<SignUpCommand>
 {
     private readonly UserManager<IdentityUser> _userManager;
     private readonly RoleManager<IdentityRole> _roleManager;
+    private readonly IGenericRepository<UserOrganization> _genericRepository;
     private readonly IUnitOfWork unitOfWork;
     private readonly IMediator _mediatR;
 
@@ -16,12 +18,14 @@ public class SignUpCommandHandler : ICommandHandler<SignUpCommand>
         UserManager<IdentityUser> userManager,
         IMediator mediatR,
         RoleManager<IdentityRole> roleManager,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IGenericRepository<UserOrganization> genericRepository)
     {
         _userManager = userManager;
         _mediatR = mediatR;
         _roleManager = roleManager;
         this.unitOfWork = unitOfWork;
+        _genericRepository = genericRepository;
     }
 
     public async Task<Result> Handle(SignUpCommand command, CancellationToken cancellationToken)
@@ -62,6 +66,12 @@ public class SignUpCommandHandler : ICommandHandler<SignUpCommand>
         var roleResult2 = await _userManager.AddToRoleAsync(user, command.Role.ToString());
         if (!roleResult2.Succeeded)
             return Result.Failure(new Error("400", string.Join(", ", roleResult2.Errors.Select(x => x.Description))));
+
+        await _genericRepository.AddAsync(new UserOrganization
+        {
+            OrganizationId = command.OrganizationId,
+            UserId = Guid.Parse(user.Id)
+        });
 
         // Final save
         await unitOfWork.SaveChangesAsync(cancellationToken);
