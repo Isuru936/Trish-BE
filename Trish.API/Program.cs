@@ -16,6 +16,12 @@ builder.Services.ConfigureInfrastructureService(cfg);
 builder.Services.ConfigureApplicationServices(cfg);
 builder.Services.ConfigureIdentityService(cfg);
 
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
+builder.Logging.AddAzureWebAppDiagnostics();
+
+
 
 builder.Services.AddAuthorization();
 // builder.Services.AddSingleton(sp => new TenantIdProvider().GetTenantId());
@@ -37,6 +43,14 @@ builder.Services.AddAntiforgery(options =>
     options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
     options.Cookie.SameSite = SameSiteMode.Strict;
 });
+
+if (!builder.Environment.IsDevelopment())
+{
+    builder.Services.Configure<LoggerFilterOptions>(options =>
+    {
+        options.MinLevel = LogLevel.Information;
+    });
+}
 
 builder.Services.AddHttpContextAccessor();
 
